@@ -1,0 +1,10 @@
+torch>=2.1
+torchvision
+numpy
+kagglehub
+pandas
+matplotlib
+scipy
+loguru
+h5py
+tqdm

@@ -5,6 +5,3 @@ kagglehub
 pandas
 matplotlib
 scipy
-loguru
-h5py
-tqdm

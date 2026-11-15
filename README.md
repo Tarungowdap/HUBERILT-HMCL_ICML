@@ -5,6 +5,14 @@ method with Euclidean, Euclidean + EWC and HMCL-style fixed-curvature baselines 
 **Split-CIFAR100** and **Split-MiniImageNet**: real data, class-incremental, 10 tasks × 10 classes,
 **zero replay**, every model trained **from scratch** (no pretrained weights).
 
+## Hypothesis
+
+Volume in hyperbolic space grows exponentially with radius, while in Euclidean space it grows only
+polynomially. We test the hypothesis that this extra room **may** reduce interference between the
+classes of different tasks, and whether **learning the curvature** helps beyond a fixed curvature. We
+evaluate this against our own fixed-curvature hyperbolic baseline under identical data, encoder,
+training and evaluation, rather than relying on claims about other systems.
+
 ## Key results
 
 On both benchmarks, **Dynamic curvature (ours)** has the lowest forgetting **and** the highest accuracy:
@@ -93,6 +101,18 @@ forgetting (they need 2 or more seeds).
 
 <!-- RESULTS:END -->
 
+## What the results do and do not show
+
+- Our method forgets less and is more accurate than all three baselines on both benchmarks.
+- The fixed-curvature hyperbolic baseline forgets **more** than the Euclidean one, so hyperbolic
+  geometry on its own is not enough.
+- In a small pilot ablation (reduced setting, one seed), the same recipe with a Euclidean head was less
+  accurate and forgot more than with the hyperbolic head, and drift compensation and the Fisher penalty
+  gave the largest gains.
+- The learned curvature stayed close to its starting value of 0.1 (about 0.09 at the end), and the
+  frozen-curvature ablation (`ablation-fixed-curvature`) has not been run yet, so the effect of the
+  *dynamic* curvature is not isolated.
+
 ## Methods
 
 All methods share the same encoder (a reduced ResNet-18 trained from scratch, GroupNorm), data
@@ -111,27 +131,24 @@ Only one prototype and one radius per class are stored; no images are replayed.
 
 ## Setup and how to run (Google Colab, GPU)
 
-1. Open **`HMCL_benchmark_GPU.ipynb`** in Colab: *File → Open notebook → GitHub*, enter
-   `Tarungowdap/HUBERILT-HMCL_ICML`, pick the notebook.
+1. Open **`results/gpu/gpu_run_notebook.ipynb`** in Colab: *File → Open notebook → GitHub*, enter
+   `Tarungowdap/HUBERILT-HMCL_ICML` and pick the notebook. It is the exact run reported above, with
+   all outputs; running it again reproduces the results.
 2. **Runtime → Change runtime type → T4 GPU** (or better).
 3. Kaggle API token: kaggle.com → *Settings → API → Create New Token*. In Colab's left sidebar open
    **🔑 Secrets**, add `KAGGLE_USERNAME` and `KAGGLE_KEY`, and switch on *Notebook access*
-   (if they are missing, Step 1 asks for them).
-4. Run the steps in order:
+   (if they are missing, Setup asks for them).
+4. Run the cells in order:
 
 | Step | What it does |
 |---|---|
-| 1. Setup | Mount Drive, clone this repo, read the Kaggle key, check the GPU |
-| 2. Load the datasets | CIFAR-100 and MiniImageNet from Kaggle → 10 tasks × 10 classes each (cached in Drive) |
-| 3. Experiment settings | Methods, seeds, epochs (identical for all methods) |
-| 4. Train on Split-CIFAR100 | All methods × all seeds (resumable) |
-| 5. Train on Split-MiniImageNet | All methods × all seeds (resumable) |
-| 6. Results | Tables (mean ± std, % improvement, p-values) and all charts |
-| 7. Ablations (optional) | Ours in Euclidean space, ours with fixed curvature |
-| 8. Publish to GitHub | Writes all tables and charts to `results/` and into this README, pushes branch `gpu-results` |
+| Setup | Mount Drive, clone this repo, read the Kaggle key, check the GPU |
+| 1. Load the datasets | CIFAR-100 and MiniImageNet from Kaggle → 10 tasks × 10 classes each (cached in Drive) |
+| 2. Train all methods | Euclidean, Euclidean + EWC, Hyperbolic (fixed c), Dynamic curvature (ours) on both benchmarks, all seeds (resumable), then keep the seeds every method finished |
+| 3. Benchmarks | Tables (mean ± std, % improvement, p-values) and all charts |
 
 Results are saved to `MyDrive/hmcl_results_gpu/<dataset>/` after every run, so if Colab disconnects,
-run Steps 1–3 again and the training steps continue where they stopped. Measured on a T4, per seed,
+run Setup and Step 1 again and the training continues where it stopped. Measured on a T4, per seed,
 for all 4 methods: roughly 15–20 min for Split-CIFAR100 (10 epochs) and 29 min for Split-MiniImageNet
 (4 epochs).
 
@@ -164,7 +181,6 @@ section of this README.
 ## Repository layout
 
 ```
-HMCL_benchmark_GPU.ipynb   Colab notebook (main entry point)
 run_benchmark.py           command-line entry point
 make_report.py             saved results -> tables, % improvement, p-values, charts, README
 hmcl_cl/
@@ -173,17 +189,9 @@ hmcl_cl/
   models.py                encoder and Euclidean / hyperbolic heads
   regularizers.py          EWC and HMCL-style gradient projection
   train.py                 training loop, evaluation, metrics, all methods
-results/gpu/               reported GPU run: notebook with outputs, PDF, tables, charts
+results/gpu/               the GPU run: Colab notebook with outputs (main entry point), PDF, tables, charts
 tests/                     unit tests (pytest)
 
-Original multimodal HMCL pipeline (frozen MERU / HyCoCLIP features):
-main.py                    entry point for the multimodal continual-learning runs
-data_utils/                feature store and upstream model helpers
-models/                    Lorentz head
-projector/                 covariance memory and gradient projection
-trainer/                   trainer, EWC, HMCL and dynamic-curvature heads
-utils/                     Lorentz and Poincaré geometry, configs, dataset sequences, drift metrics
-scripts/                   feature extraction, benchmarks, ablations, five-seed runs, summaries
 ```
 
 ## Data
